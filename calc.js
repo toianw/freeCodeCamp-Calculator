@@ -1,25 +1,16 @@
 // ToDo:
 
-// DONE!!! 1. Add memory and 'ANS' functionality
-// 2. add calc functioanlity for 2+ (like 2++)
-// 3. Add a copy to clipboard feature if an answer is showing
-// DONE!!! 4. Make display text size adjust to the number of digits on the screen
-//    and handle overflowing text.
-// 5. handle answers in exponenet form (both appearance and make sure they are
-//    captured as numbers in the calculation algorithm);
-// 6. allow negation in front of parens ???
+// 1. add calc functioanlity for 2+ (like 2++)
+// 2. Add a copy to clipboard feature if an answer is showing
+// 3. handle answers in exponenet form in the calculation algorithm
+// 4. allow negation in front of parens ???
 
-// Problems
+// Problems (think about this)
 // 1. IMPORTANT!!! keep precision in memory, but round for display 
 
 // Possible
-// 1. make squares and powers slightly smaller
-// 2. refactor rendering of previous answer
-// 3. Make click, touch press css efects more pronounced than hover
-//    possibly add delay for removing the class when touched.
+// 1. refactor rendering of previous answer
 
-// MEMORY FUNCTIONALITY
-// 1. M+ and M- should only be clickable if current entry is a number
 
 const calc = {
   
@@ -106,7 +97,7 @@ const calc = {
           const expression = this.autoCloseParens(this.entry);
           this.lastCalculation = expression
             .replace(/Ans/g, this.storedAnswer )
-            .replace(/\-\-/g, '');
+            .replace(/\-\-/g, ''); // remove double negaives
 
           // render the expression that gave this result
           this.previousAnswer.classList.remove('transition');
@@ -117,7 +108,7 @@ const calc = {
                       .replace(/Ans/g, this.storedAnswer )
                       .replace(/\-\-/g, '') + '=');
                     
-          // calculate and render the answer
+          // calculate the answer
           try {
 		    
             let answer = parseFloat(
@@ -143,6 +134,7 @@ const calc = {
       case 'AC':
         this.clearDisplay();
         break; 
+        
         
       case '+/−':
         const num = this.lastFullNum;
@@ -556,30 +548,43 @@ calc.closingParensIndex = function(str, openParensIndex) {
   return null;
 };
 
+
+// pipes str though all funcs and returns the result
+calc.pipe = function(str, ...funcs) {
+  return funcs.reduce( (str, func) => func(str), str );
+};
+
+
+// prettify the str for output to the display  
 calc.stringToHtml = function(str) {
 
-  let outputStr = this.autoCloseParens(str, '}');
+  return this.pipe(str, 
+      this.autoCloseParens.bind(this, str, '}' ), // '}' is a placeholder for unclosed ')'
+      this.prettifyPowers,
+      this.addCommas,
+      this.prettifyExps
+    )
+    
+    // replace '}' with markup for a unclosed right parens
+    .replace(/\}/g, '<span class="open-parens">)</span>');
 
-  outputStr = prettifyExponents(outputStr);
-
-  return this.addCommas(outputStr);
-}
+};
 
 
-function prettifyExponents(str) {
+// puts powers inside html <sup> tags
+calc.prettifyPowers = function(str) {
 
   function insertHtmlSups(str) {
-    
- 
- 
+     
     const position = str.indexOf('^');
+    
     // allow the final '^' to show until another character is added 
     if (position === -1 || /^\^[»)}]*$/.test(str.slice(position)) ) {
       return str;
     }
     
     // '«' & '»' are palceholders for <sup> & </sup> tags respectively.
-    // '}' is a placeholder for an unclosed parens 
+    // '}' is a placeholder for an unclosed right parens 
     //     i.e. for <span class="unclosed-parens">)</span>
     str = str.replace('^', '«');
     
@@ -608,22 +613,33 @@ function prettifyExponents(str) {
   
   return insertHtmlSups(str)
     .replace(/«/g, '<sup>')
-    .replace(/»/g, '</sup>')
-    .replace(/\}/g, '<span class="open-parens">)</span>');
+    .replace(/»/g, '</sup>');
+    
+};
+
+
+// outputs markup to prettify scientific output (e.g. 2.75E-17)
+calc.prettifyExps = function(val) {
+  const exp = /(\d(?:\.\d+)?)e([+-]\d+)/,
+        parts = val.match(exp);
   
+  if (!parts) 
+    return val; 
+  return `${parts[1]}<span class="exp">e</span><sup>${parts[2]}</sup>`;
+};
+ 
 
-
-}
-  
-
+// adds commas to seperate thousands 
 calc.addCommas = function(expression) {
   return expression.replace(/\d+(\.\d*)?/g, function(num) {
     const parts = num.split('.');
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return parts.join('.');
   });
-}
+};
 
+
+// CALCULATING ENGINE.......... 
 
 calc.calculate = (function() {
   
