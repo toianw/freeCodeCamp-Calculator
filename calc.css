@@ -54,12 +54,36 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   align-items: flex-end;
-  padding: 10px 14px;
+  margin: 10px 14px;
   flex: 4;
+  position: relative;
+  overflow: hidden;
+}
+
+.calc__display sup {
+  vertical-align: 60%;
+  font-size: 65%;
+}
+
+.calc__memory-display {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 14px;
+  color: #777;
+  background: #eee;
+  padding: 1px 5px;
+  transition: opacity 0.2s;
+  opacity: 0;
+}
+
+.calc__memory-display.visible {
+  opacity: 1;
 }
 
 .calc__result {
   font-size: 40px;
+  white-space: nowrap;
 }
 
 .calc__result .open-parens {
@@ -75,7 +99,7 @@ body {
 }
 
 .calc__previous-expression.transition {
-  font-size: 20px;
+  font-size: 22px;
   transform: translate(0, 0);
   opacity: 1;
   transition: all 0.1s;
@@ -107,7 +131,7 @@ body {
   transition: all 0.1s;
 }
 
-.calc__btn:hover {
+.calc__btn.hover {
   background: #eee;
   border-color: #ddd;
 }
@@ -120,6 +144,10 @@ body {
   cursor: pointer;
 }
 
+.calc__mem-btn:not(.clickable):hover {
+  cursor: default;
+}
+
 .calc__btn--number {
   background: #fff;
 }
@@ -129,7 +157,7 @@ body {
   color: #fff;
 }
 
-.calc__btn--clear:hover {
+.calc__btn--clear.hover {
   background: #EC4D4D;
   border-color: #e04444;
 }
@@ -139,7 +167,7 @@ body {
   color: #fff;
 }
 
-.calc__btn--equals:hover {
+.calc__btn--equals.hover {
   background: #FF5722;
   border-color: #f14a15;
 }
@@ -174,7 +202,7 @@ body {
   align-items: flex-end;
 }
 
-.calc__memory:hover .calc__mem-btn {
+.calc__memory:hover .calc__mem-btn.clickable {
   border-color: #fff;
 }
 
@@ -182,18 +210,24 @@ body {
   background: none;
   font-size: 0.75em;
   font-weight: bold;
-  color: #333;
+  color: #ccc;
   padding: 5px 12px;
   border: 1px solid transparent;
+  flex: none;
+  margin: 0;
 }
 
-.calc__mem-btn:hover {
-  background: #fff;
+.calc__mem-btn.clickable {
+  color: #444;
 }
 
-.calc__mem-btn:hover {
+.calc__mem-btn.clickable.hover {
   background: #E0E0E0;
   cursor: pointer;
+}
+
+.calc__mem-btn:focus {
+  outline: none;
 }
 
 .calc__btn--operator {
@@ -201,8 +235,11 @@ body {
   color: #444;
 }
 
-.calc__btn--operator:hover {
+.calc__btn--operator.hover {
   background: #71c9f1;
   color: #fff;
   border-color: #59b9e4;
 }
+
+
+
