@@ -2,20 +2,11 @@
 
 // 1. add calc functioanlity for 2+ (like 2++)
 // 2. Add a copy to clipboard feature if an answer is showing
-// DONE!!! 3. handle answers in exponenet form in the calculation algorithm
-// 4. allow negation in front of parens ???
-// 5. allow the previous answer text to resize if it doesn't fit in the box
+// 3. allow negation in front of parens ???
+// 4. IMPORTANT: allow the previous answer text to resize if it doesn't fit in the box
 
 // Problems (think about this)
-// 1. IMPORTANT!!! keep precision in memory, but round for display 
-// DONE!!! 2. Don't allow ERROR to be stored as Ans
-// DONE!!! 3. backspace functionality for numbers with 'e'
-
-// Possible
-// 1. refactor rendering of previous answer
-// DONE!!! 2. below this comment: // render the expression that gave this result
-      // create a renderPrevious function 
-// DONE!!!3. simplify the backspace functionalitt for string
+// 1. keep precision in memory, but round for display 
 
 
 
@@ -165,7 +156,7 @@ const calc = {
 
       case '⌫': // backspace
 
-        // determine what to delete
+        // determine index to delete from
         const match = this.entry.match(/√\($/) ||  //root followed by open parens
           this.entry.match(/e[+-]\d$/) || // e+ or e- (in scientific notation)
           this.entry.match(/\-\d$/) ||  // negative one digit number
@@ -249,7 +240,7 @@ const calc = {
       // MEMORY BUTTONS
       
       // add the value to memory
-      // If it alreadu has a value, add the current display to the value
+      // If it already has a value, add the current display to the value
       case 'M+':
         if (this.isClickable('M+')) {
           
@@ -381,7 +372,7 @@ const calc = {
     this.previousAnswer.offsetLeft; // cause repaint
     this.previousAnswer.classList.add('transition');  
     this.render(this.previousAnswer, 
-      this.stringToHtml(this.lastCalculation) + ' =');
+      this.stringToHtml(this.lastCalculation) + '=');
   },
   
   clearDisplay() {
@@ -428,8 +419,8 @@ const calc = {
   },
   
   get lastFullNum() {
-    const lastNum = this.entry.match(/\-?(\d(?:\.\d+)?)e([+-]\d+)$/) || 
-          this.entry.match(/(\-?\d+(\.\d*)?$)|-?Ans$/);
+    const lastNum = this.entry.match(/\-?(\d(?:\.\d+)?)e([+-]\d+)$/) || // scientific notation
+          this.entry.match(/(\-?\d+(\.\d*)?$)|-?Ans$/); // other numbers or +/-Ans 
     return lastNum ? lastNum[0] : null;
   },
   
@@ -613,13 +604,8 @@ calc.prettifyPowers = function(str) {
 
 // outputs markup to alllow styling of scientific output (e.g. 2.75E-17)
 calc.prettifyExps = function(val) {
-//  const exp = /(\d(?:\.\d+)?)e([+-]\d+)/,
-//        parts = val.match(exp);
-//  
-//  return parts ? 
-//    `${parts[1]}<span class="exp">e</span><sup>${parts[2]}</sup>` : val;
     return val.replace(/(\d(?:\.\d+)?)e([+-]\d+)/, 
-                    '$1<span class="exp">e</span><sup>$2</sup>');
+      '$1<span class="exp">e</span><sup>$2</sup>');
 };
  
 
@@ -704,7 +690,6 @@ function shunt(mathString) {
     let remainingExpression = expression.substring(i);
     
     // deal with numbers
-    //const num = remainingExpression.match(/^\-?\d+(\.\d*)?/); 
     const num = remainingExpression.match(/^\-?\d+(\.\d*)?(e[+-]\d+)?/);
     if (num) {
       output.push(Number(num[0])); // num[0] is the match
