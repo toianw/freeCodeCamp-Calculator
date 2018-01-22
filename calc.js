@@ -2,14 +2,21 @@
 
 // 1. add calc functioanlity for 2+ (like 2++)
 // 2. Add a copy to clipboard feature if an answer is showing
-// 3. handle answers in exponenet form in the calculation algorithm
+// DONE!!! 3. handle answers in exponenet form in the calculation algorithm
 // 4. allow negation in front of parens ???
+// 5. allow the previous answer text to resize if it doesn't fit in the box
 
 // Problems (think about this)
 // 1. IMPORTANT!!! keep precision in memory, but round for display 
+// DONE!!! 2. Don't allow ERROR to be stored as Ans
+// DONE!!! 3. backspace functionality for numbers with 'e'
 
 // Possible
 // 1. refactor rendering of previous answer
+// DONE!!! 2. below this comment: // render the expression that gave this result
+      // create a renderPrevious function 
+// DONE!!!3. simplify the backspace functionalitt for string
+
 
 
 const calc = {
@@ -83,6 +90,19 @@ const calc = {
    
     const pressed = btn.innerHTML;
 
+    // Clear the display for a fresh calculation:
+    if ( this.isResult && /[0-9√(.⌫]/.test(pressed) )
+        this.clearDisplay();
+    
+    // Only allow actions that clear the display if 'ERROR' is showing
+    if (this.isError) { 
+      if ( /[0-9.()√⌫]|Ans|MR|AC/.test(pressed) ) {
+        this.clearDisplay();
+      } else { 
+        return;
+      }
+    }
+      
     let value = ''; // value to add to the entry string
     
     switch (pressed) {
@@ -100,13 +120,8 @@ const calc = {
             .replace(/\-\-/g, ''); // remove double negaives
 
           // render the expression that gave this result
-          this.previousAnswer.classList.remove('transition');
-          this.previousAnswer.offsetLeft; // cause repaint
-          this.previousAnswer.classList.add('transition');  
-          this.render(this.previousAnswer, 
-              this.stringToHtml(expression)
-                      .replace(/Ans/g, this.storedAnswer )
-                      .replace(/\-\-/g, '') + '=');
+          this.renderPreviousAnswer();
+
                     
           // calculate the answer
           try {
@@ -121,7 +136,8 @@ const calc = {
               answer = "ERROR";
             
             this.entry = answer.toString();
-            this.storedAnswer = this.entry;
+            if (this.entry !== 'ERROR')
+              this.storedAnswer = this.entry;
 		  
           } catch(err) {
               this.entry = "ERROR";
@@ -149,30 +165,16 @@ const calc = {
 
       case '⌫': // backspace
 
-        // if result is displayed, clear result
-        if (this.isResult) {
-          this.clearDisplay();
-        
-        } else if (this.lastFullNum === 'Ans') {
-          this.entry = this.entry.slice(0, -3);
-        } else if (this.lastFullNum === '-Ans') {
-          this.entry = this.entry.slice(0, -4);
-        }  
-                
-        // remove two characters if string ends in '√(' or, 
-        // for example, '2^2', '2^(`, or '-3'
-        else if ( /√\($/.test(this.entry) || 
-                  /\-\d$/.test(this.entry) || 
-                  /\^(\d|\()$/.test(this.entry)
-                )
-          this.entry = this.entry.slice(0, -2);
-        
-        // default: remove the last character
-        else {
-          this.entry = this.entry.slice(0, -1);
+        // determine what to delete
+        const match = this.entry.match(/√\($/) ||  //root followed by open parens
+          this.entry.match(/e[+-]\d$/) || // e+ or e- (in scientific notation)
+          this.entry.match(/\-\d$/) ||  // negative one digit number
+          this.entry.match(/\^(\d|\()$/) || // one digit power or open parens in power
+          this.entry.match(/\-?[a-zA-Z]+$/); // text (ERROR, Ans or -Ans)
+         
+        // delete it
+        this.entry = this.entry.slice(0, match ? match.index : -1);
           
-        }
-        
         // go back to the previous expression entered if all 
         // of the current entry string is deleted
         if (this.entry.length === 0) {
@@ -199,8 +201,6 @@ const calc = {
         
         
       case '√':
-        if (this.isResult)
-          this.clearDisplay();
         value = '√('
         break;
         
@@ -225,8 +225,6 @@ const calc = {
           
         
       case '(':
-        if (this.isResult)
-          this.clearDisplay();
         value = this.isSquare ? '×(' : '(';  
         break;
         
@@ -238,22 +236,14 @@ const calc = {
     
                 
       case '.':
-        if (this.isResult)
-          this.clearDisplay();
-        
-        if (!this.hasDecimal) {
+        if (!this.hasDecimal) 
           value = /\d+$/.test(this.entry) ? '.' : '0.'
-        }
         break;
         
       
       case '0':
-        if (this.isResult)
-          this.clearDisplay();
-        
-        if (this.lastFullNum !== '0' && this.entry !== '') {
+        if (this.lastFullNum !== '0' && this.entry !== '') 
           value = '0';
-        }
         break;
         
       // MEMORY BUTTONS
@@ -318,10 +308,7 @@ const calc = {
       
     
       default: // all numbers (except 0) 
-        
-        if (this.isResult)
-          this.clearDisplay();
-            
+
         if (this.entry === '0')
           this.entry = '';
         
@@ -331,10 +318,9 @@ const calc = {
         } else {
           value = pressed;
         }
-        //value = this.lastDigit === ')' ? '×' + pressed : pressed;
         
     }
-    // END OF SWITCH, PROCESS:
+    // END OF SWITCH, PROCESS THE ENTRY:
     
     // no longer a result
     if (pressed !== '=' && pressed !== 'M+' && pressed !== 'M-')
@@ -390,6 +376,14 @@ const calc = {
     
   },
   
+  renderPreviousAnswer() {
+    this.previousAnswer.classList.remove('transition');
+    this.previousAnswer.offsetLeft; // cause repaint
+    this.previousAnswer.classList.add('transition');  
+    this.render(this.previousAnswer, 
+      this.stringToHtml(this.lastCalculation) + ' =');
+  },
+  
   clearDisplay() {
     this.entry = '';
     this.previousAnswer.innerHTML = '';
@@ -399,34 +393,28 @@ const calc = {
 
     // Ans btn clickable once a calculation has been made 
     if (this.storedAnswer !== '' && this.storedAnswer !== 'ERROR') 
-      this.Ans.classList.add('clickable');
-    else 
-      this.Ans.classList.remove('clickable');  
+      this.addClass('clickable', this.Ans);
+    else
+      this.removeClass('clickabl', this.Ans) 
     
     
     // M+ and M- buttons clickable only if entry is a number
-    if (this.entryIsNumber) {
-      this['M+'].classList.add('clickable');
-      this['M-'].classList.add('clickable');
-    } else {
-      this['M+'].classList.remove('clickable');
-      this['M-'].classList.remove('clickable');
-    }
+    if (this.entryIsNumber) 
+      this.addClass('clickable', this['M+'], this['M-']);
+    else 
+      this.removeClass('clickable', this['M+'], this['M-']);
+    
     
     // MR and MC buttons clickable when something is stored in the memory
     // Disiplay memory value only if it has a value 
     if (this.memory !== '') {
-      this.MC.classList.add('clickable');
-      this.MR.classList.add('clickable');
-      this.memoryDisplay.classList.add('visible');
+      this.addClass('clickable', this.MR, this.MC);
+      this.addClass('visible', this.memoryDisplay);
+
     } else { 
-      this.MC.classList.remove('clickable');
-      this.MR.classList.remove('clickable');
-      this.memoryDisplay.classList.remove('visible');
+      this.removeClass('clickable', this.MR, this.MC);
+      this.removeClass('visible', this.memoryDisplay);
     }
-    
-    
-    
     
   },
   
@@ -440,8 +428,8 @@ const calc = {
   },
   
   get lastFullNum() {
-   // const lastNum = this.entry.match(/\-?\d+(\.\d*)?$/);
-    const lastNum = this.entry.match(/(\-?\d+(\.\d*)?$)|-?Ans$/);
+    const lastNum = this.entry.match(/\-?(\d(?:\.\d+)?)e([+-]\d+)$/) || 
+          this.entry.match(/(\-?\d+(\.\d*)?$)|-?Ans$/);
     return lastNum ? lastNum[0] : null;
   },
   
@@ -453,9 +441,11 @@ const calc = {
     return '+−×÷'.indexOf(this.lastDigit) !== -1;
   },
   
+  get isError() {
+    return this.entry.toUpperCase() === 'ERROR';
+  },
+  
   get entryIsNumber() {
-    //return this.entry.match(/^\-?(\d+(\.\d*)?$)|-?Ans$/);
-//    console.log(this.entry.match(/^\-?(\d+(\.\d*)?$)|-?Ans$/));
     return /^\-?(\d+(\.\d*)?$)|-?Ans$/.test(this.entry);
   },
   
@@ -482,6 +472,13 @@ const calc = {
     return this[btn].classList.contains('clickable');
   },
   
+  addClass(className, ...els) {
+    els.forEach(el => el.classList.add(className));
+  },
+  
+  removeClass(className, ...els) {
+    els.forEach(el => el.classList.remove(className));
+  },  
 
   // styling
   onHover(btn) {
@@ -497,12 +494,6 @@ const calc = {
 }
 
 calc.init();
-
-
-
-
-
-
 
 
 
@@ -558,8 +549,10 @@ calc.pipe = function(str, ...funcs) {
 // prettify the str for output to the display  
 calc.stringToHtml = function(str) {
 
-  return this.pipe(str, 
-      this.autoCloseParens.bind(this, str, '}' ), // '}' is a placeholder for unclosed ')'
+  return this.pipe(str,
+                   
+      // '}' is a placeholder for unclosed ')'
+      this.autoCloseParens.bind(this, str, '}' ), 
       this.prettifyPowers,
       this.addCommas,
       this.prettifyExps
@@ -618,14 +611,15 @@ calc.prettifyPowers = function(str) {
 };
 
 
-// outputs markup to prettify scientific output (e.g. 2.75E-17)
+// outputs markup to alllow styling of scientific output (e.g. 2.75E-17)
 calc.prettifyExps = function(val) {
-  const exp = /(\d(?:\.\d+)?)e([+-]\d+)/,
-        parts = val.match(exp);
-  
-  if (!parts) 
-    return val; 
-  return `${parts[1]}<span class="exp">e</span><sup>${parts[2]}</sup>`;
+//  const exp = /(\d(?:\.\d+)?)e([+-]\d+)/,
+//        parts = val.match(exp);
+//  
+//  return parts ? 
+//    `${parts[1]}<span class="exp">e</span><sup>${parts[2]}</sup>` : val;
+    return val.replace(/(\d(?:\.\d+)?)e([+-]\d+)/, 
+                    '$1<span class="exp">e</span><sup>$2</sup>');
 };
  
 
@@ -710,7 +704,8 @@ function shunt(mathString) {
     let remainingExpression = expression.substring(i);
     
     // deal with numbers
-    const num = remainingExpression.match(/^\-?\d+(\.\d*)?/);
+    //const num = remainingExpression.match(/^\-?\d+(\.\d*)?/); 
+    const num = remainingExpression.match(/^\-?\d+(\.\d*)?(e[+-]\d+)?/);
     if (num) {
       output.push(Number(num[0])); // num[0] is the match
       i += num[0].length;
