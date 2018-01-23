@@ -7,7 +7,8 @@
 
 // Problems (think about this)
 // 1. keep precision in memory, but round for display 
-
+// 2. DONE!!! When 'Ans' is displayed, validate next user input.
+// 3. DONE!!! Ans put NaN into the memory
 
 
 const calc = {
@@ -81,6 +82,7 @@ const calc = {
    
     const pressed = btn.innerHTML;
 
+    
     // Clear the display for a fresh calculation:
     if ( this.isResult && /[0-9√(.⌫]/.test(pressed) )
         this.clearDisplay();
@@ -227,13 +229,13 @@ const calc = {
     
                 
       case '.':
-        if (!this.hasDecimal) 
+        if (!this.hasDecimal && !this.isAns) 
           value = /\d+$/.test(this.entry) ? '.' : '0.'
         break;
         
       
       case '0':
-        if (this.lastFullNum !== '0' && this.entry !== '') 
+        if (this.lastFullNum !== '0' && this.entry !== '' && !this.isAns) 
           value = '0';
         break;
         
@@ -243,9 +245,10 @@ const calc = {
       // If it already has a value, add the current display to the value
       case 'M+':
         if (this.isClickable('M+')) {
-          
+          const val = this.isAns ? this.storedAnswer : this.entry; 
+            
           this.memory = this.memory === '' ? 
-          Number(this.entry) : this.memory + Number(this.entry);
+          Number(val) : this.memory + Number(val);
           
           this.memoryVal.innerHTML = this.memory;
           this.isResult = true;
@@ -256,9 +259,10 @@ const calc = {
         
       case 'M-':
         if (this.isClickable('M-')) {
-        
+          const val = this.isAns ? this.storedAnswer : this.entry; 
+          
           this.memory = this.memory === '' ? 
-            -Number(this.entry) : this.memory - Number(this.entry);
+            -Number(val) : this.memory - Number(val);
           
           this.memoryVal.innerHTML = this.memory;
           this.isResult = true;
@@ -304,7 +308,7 @@ const calc = {
           this.entry = '';
         
         // insert × if the digit comes immediately after a closing parens or square 
-        if (this.lastDigit === ')' || this.isSquare) {
+        if (this.lastDigit === ')' || this.isSquare || this.isAns) {
           value = '×' + pressed;
         } else {
           value = pressed;
@@ -434,6 +438,10 @@ const calc = {
   
   get isError() {
     return this.entry.toUpperCase() === 'ERROR';
+  },
+  
+  get isAns() {
+    return this.lastFullNum === 'Ans' || this.lastFullNum === '-Ans';
   },
   
   get entryIsNumber() {
